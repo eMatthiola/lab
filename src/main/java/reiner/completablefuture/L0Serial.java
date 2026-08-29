@@ -28,5 +28,6 @@ public class L0Serial {
         System.out.println("---- 串行总耗时: " + cost + "ms ----");
         System.out.println(product + " price=" + price + " stock=" + stock
                 + " comments=" + comments + " recommend=" + recommend);
+        System.out.println("main 在 " + Thread.currentThread().getName());
     }
 }

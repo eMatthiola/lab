@@ -17,6 +17,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class OrderDetailApi {
 
     /** L0/L1/L2 关着跑，好量准耗时；练 L3(降级) / L4(超时) 时改成 true */
+//    static boolean CHAOS = true;
     static boolean CHAOS = false;
 
     // ==================== 模拟的 5 个远程调用 ====================

@@ -1,5 +1,11 @@
 package reiner.completablefuture;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
  * L3 · 异常降级：exceptionally
  * <p>
@@ -25,4 +31,47 @@ package reiner.completablefuture;
  * 你笔记里记的「shutdown 要放 finally」说的就是这个 —— <b>先亲眼看一次再修</b>。
  */
 public class L3Fallback {
+
+
+    public static void main(String[] args) {
+        OrderDetailApi api = new OrderDetailApi();
+        int id = 1;
+
+        long start = System.currentTimeMillis();
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+
+        // ---- 4 条互不依赖的线，supplyAsync 立刻返回，四个任务同时开跑 ----
+        CompletableFuture<Product> productF =
+                CompletableFuture.supplyAsync(() -> api.queryProduct(id), pool);
+        CompletableFuture<Integer> priceF =
+                CompletableFuture.supplyAsync(() -> api.queryPrice(id), pool);
+        CompletableFuture<Integer> stockF =
+                CompletableFuture.supplyAsync(() -> api.queryStock(id), pool);
+        CompletableFuture<List<String>> commentsF =
+                CompletableFuture.supplyAsync(() -> api.queryComments(id), pool)
+                        .exceptionally(ex -> {System.out.println("评论服务降级：" + ex.getCause());
+                            return Collections.emptyList();});
+
+
+        // ---- 第 1 条线的延续：必须先拿到 Product，才知道 categoryId ----
+        //      product 就是 productF 完成后的结果
+        CompletableFuture<List<String>> recommendF =
+                productF.thenApplyAsync(product -> api.queryRecommend(product.categoryId), pool);
+
+        // ---- 到这里为止一个任务都没等，main 只花了几毫秒 ----
+        //      join() 才开始阻塞等待，此时几条线早已在并行跑了
+        Product product = productF.join();
+        Integer price = priceF.join();
+        Integer stock = stockF.join();
+        List<String> comments = commentsF.join();
+        List<String> recommend = recommendF.join();
+
+        long cost = System.currentTimeMillis() - start;
+        System.out.println("---- 并行总耗时: " + cost + "ms ----");
+        System.out.println(product + " price=" + price + " stock=" + stock
+                + " comments=" + comments + " recommend=" + recommend);
+
+        pool.shutdown();
+    }
 }

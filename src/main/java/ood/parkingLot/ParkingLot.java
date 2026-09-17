@@ -13,6 +13,7 @@ public class ParkingLot {
     //receipt（lisense number，spot number, start time， receipt number）          //  get a receipt when coming
 
 
+    Car car;
 
 
 }
